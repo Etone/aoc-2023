@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"regexp"
@@ -17,14 +18,16 @@ var highscores []race
 
 var highscoreP2 race
 
+//go:embed input.txt
+var input string
+
 func initializeGlobals() {
 	highscores = []race{}
 }
 
 func parseInputP1() {
-	data, _ := os.ReadFile("input.txt")
 	removeSpaceRegex := regexp.MustCompile(`[ ]+`)
-	cleaned := string(data)
+	cleaned := input
 	cleaned = removeSpaceRegex.ReplaceAllString(cleaned, ";")
 	lines := strings.Split(cleaned, "\n")
 	_, cleanedMillisecondsCSV, _ := strings.Cut(lines[0], ";")
