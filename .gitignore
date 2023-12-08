@@ -19,3 +19,8 @@
 
 # Go workspace file
 go.work
+
+# Input and example should not be comitted, as wished by the author
+0*/input.txt
+0*/example.txt
+
