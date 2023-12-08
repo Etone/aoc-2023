@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-//go:embed input.txt
+//go:embed example.txt
 var input string
 
 type Node struct {
@@ -15,6 +15,8 @@ type Node struct {
 	left  string
 	right string
 }
+
+type test func(string) bool
 
 var dessertMap map[string]Node
 
@@ -43,10 +45,31 @@ func parseInput() {
 	}
 }
 
-func part1() {
-	currentNode := dessertMap["AAA"]
+func findCycleLength(pos Node) int {
+	seenEndpoints := map[Node]int{}
 	var steps int
-	for steps = 0; currentNode.id != "ZZZ"; steps++ {
+
+	cycleLength, instructionPtr, endPoint := solve(0, pos, func(s string) bool { return strings.HasSuffix(s, "Z") })
+
+	for {
+		_, isPresent := seenEndpoints[endPoint]
+		seenEndpoints[endPoint] = instructionPtr
+		steps, instructionPtr, endPoint = solve(instructionPtr, endPoint, func(s string) bool { return strings.HasSuffix(s, "Z") })
+		cycleLength += steps
+
+		// Im to stupid as for some reason it just doe not work as condition in the for loop
+		if isPresent && seenEndpoints[endPoint] == instructionPtr {
+			break
+		}
+	}
+
+	return cycleLength
+}
+
+func solve(startInstruction int, start Node, endCondition test) (int, int, Node) {
+	var steps int
+	currentNode := start
+	for steps = startInstruction; !endCondition(currentNode.id); steps++ {
 		direction := string(instructions[steps%len(instructions)])
 		if direction == "R" {
 			currentNode = dessertMap[currentNode.right]
@@ -55,40 +78,54 @@ func part1() {
 			currentNode = dessertMap[currentNode.left]
 		}
 	}
+	return steps, (startInstruction + steps) % len(instructions), currentNode
+}
+
+// greatest common divisor (GCD) via Euclidean algorithm
+func GCD(a, b int) int {
+	for b != 0 {
+					t := b
+					b = a % b
+					a = t
+	}
+	return a
+}
+
+// find Least Common Multiple (LCM) via GCD
+func LCM(a, b int, integers ...int) int {
+	result := a * b / GCD(a, b)
+
+	for i := 0; i < len(integers); i++ {
+					result = LCM(result, integers[i])
+	}
+
+	return result
+}
+
+func part1() {
+	steps, _, _ := solve(0, dessertMap["AAA"], func(s string) bool { return s == "ZZZ" })
 	fmt.Printf("Part 1: %d\n", steps)
 }
 
 func part2() {
-	currentPositions := make([]Node, 0, len(dessertMap))
+	startingPoints := make([]string, 0, len(dessertMap))
 	for k := range dessertMap {
 		if strings.HasSuffix(k, "A") {
-			currentPositions = append(currentPositions, dessertMap[k])
+			startingPoints = append(startingPoints, k)
 		}
 	}
 
-	var end bool
-	var steps int
-	for steps = 0; !end; steps++ {
-		direction := string(instructions[steps%len(instructions)])
-		end = true
-		for i, currentPosition := range currentPositions {
-			if direction == "R" {
-				currentPositions[i] = dessertMap[currentPosition.right]
-			}
-			if direction == "L" {
-				currentPositions[i] = dessertMap[currentPosition.left]
-			}
-		}
-		for _, pos := range currentPositions {
-			end = end && strings.HasSuffix(pos.id, "Z")
-		}
+	cycles := []int{}
+	for _, startingPoint := range startingPoints {
+		cycles = append(cycles, findCycleLength(dessertMap[startingPoint]))
 	}
-
-	fmt.Printf("Part 2: %d\n", steps)
+	//lcm cycles
+	lcm := LCM(cycles[0], cycles[1], cycles[2:]...)
+	fmt.Printf("Part 2: %d\n", lcm)
 }
 
 func main() {
 	initGlobals()
-	part1()
+	// part1()
 	part2()
 }
