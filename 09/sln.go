@@ -3,63 +3,58 @@ package main
 import (
 	_ "embed"
 	"fmt"
+	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
-type History = []int
-
-func calculateNext(hist []int) (next int, prev int) {
-	values := hist
-
-	level := buildDifferences(values)
-
-	lastLevel := true
-	for _, v := range level {
-		if v != 0 {
-			lastLevel = false
-			break
-		}
-	}
-
-	if lastLevel {
-		next = hist[len(hist)-1]
-		prev = hist[0]
-	} else {
-		n, p := calculateNext(level)
-		next = hist[len(hist)-1] + n
-		prev = hist[0] - p
-	}
-
-	return
-}
+type Measurement = []int
 
 //go:embed input.txt
 var input string
 
-func parseInput() (histories []History) {
+func parseInput() (measurements []Measurement) {
 	historyLines := strings.Split(input, "\n")
 	for _, line := range historyLines {
-		histories = append(histories, parseHistory(line))
+		measurements = append(measurements, parseHistory(line))
 	}
 	return
 }
 
-func parseHistory(line string) (hist History) {
-	values := strings.Split(line, " ")
+func parseHistory(line string) (measured Measurement) {
+	values := strings.Fields(line)
 	for _, v := range values {
 		conv, _ := strconv.Atoi(v)
-		hist = append(hist, conv)
+		measured = append(measured, conv)
 	}
 	return
+}
+
+func extrapolate(values []int) (int, int) {
+	if allZero(values) {
+		return 0, 0
+	}
+
+	diffs := buildDifferences(values)
+	n, p := extrapolate(diffs)
+	return values[len(values)-1] + n, values[0] - p
 }
 
 func buildDifferences(values []int) (level []int) {
 	for i := 0; i < len(values)-1; i++ {
-		a := values[i]
-		b := values[i+1]
+		level = append(level, values[i+1]-values[i])
+	}
+	return
+}
 
-		level = append(level, b-a)
+func allZero(vals []int) (allZero bool) {
+	allZero = true
+	for _, v := range vals {
+		if v != 0 {
+			allZero = false
+			break
+		}
 	}
 	return
 }
@@ -69,7 +64,7 @@ func part1And2() {
 	sumFuture := 0
 	sumPast := 0
 	for _, hist := range histories {
-		predictFuture, predictPast := calculateNext(hist)
+		predictFuture, predictPast := extrapolate(hist)
 		sumFuture += predictFuture
 		sumPast += predictPast
 	}
